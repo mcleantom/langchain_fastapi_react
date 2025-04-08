@@ -5,3 +5,5 @@ langgraph
 langchain
 langchain_openai
 tiktoken
+psycopg[binary,pool]
+langgraph-checkpoint-postgres
