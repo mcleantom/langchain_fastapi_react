@@ -15,7 +15,7 @@ html = """
             var ws = new WebSocket("ws://localhost:8000/ws/123");
             ws.onmessage = function(event) {
                 var messages = document.getElementById('messages')
-                messages.innerText+=event.data
+                messages.innerText += '<br/><br/>' + event.data
             };
             function sendMessage(event) {
                 var input = document.getElementById("messageText")

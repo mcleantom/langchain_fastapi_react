@@ -15,7 +15,7 @@ checkpointer = None
 
 async def get_checkpointer():
     global pool, checkpointer
-    if pool is None and checkpointer is None:
+    if pool is None or checkpointer is None:
         pool = AsyncConnectionPool(
             conninfo=DB_URI,
             max_size=20,
