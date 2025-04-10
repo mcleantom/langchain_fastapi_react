@@ -9,6 +9,7 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage
 from langchain_experimental.utilities import PythonREPL
+import json
 
 
 tavily_tool = TavilySearchResults(max_results=5)
@@ -26,7 +27,11 @@ def python_repl_tool(
         result = repl.run(code)
     except BaseException as e:
         return f"Failed to execute. Error: {repr(e)}"
-    result_str = f"Successfully executed:\n\`\`\`python\n{code}\n\`\`\`\nStdout: {result}"
+    result_str = json.dumps({
+        "result": "success",
+        "code": code,
+        "stdout": result
+    })
     return result_str
 
 
@@ -70,6 +75,7 @@ research_agent = create_react_agent(
     llm, tools=[tavily_tool], prompt="You are a researcher. DO NOT do any math."
 )
 
+
 def research_node(state: State) -> Command[Literal["supervisor"]]:
     result = research_agent.invoke(state)
     return Command(
@@ -96,9 +102,10 @@ def code_node(state: State) -> Command[Literal["supervisor"]]:
     )
 
 
-builder = StateGraph(State)
-builder.add_edge(START, "supervisor")
-builder.add_node("supervisor", supervisor_node)
-builder.add_node("researcher", research_node)
-builder.add_node("coder", code_node)
-graph = builder.compile()
+def create_graph(checkpointer):
+    builder = StateGraph(State)
+    builder.add_edge(START, "supervisor")
+    builder.add_node("supervisor", supervisor_node)
+    builder.add_node("researcher", research_node)
+    builder.add_node("coder", code_node)
+    return builder.compile()
