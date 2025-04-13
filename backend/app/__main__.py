@@ -1,12 +1,11 @@
 from fastapi import FastAPI, Depends
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List
-from langchain.schema import BaseMessage
 from dotenv import load_dotenv
 from app.dependencies import get_graph
 from app.checkpointer import get_checkpointer
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langchain_core.messages import HumanMessage
 import asyncio
 import sys
 
@@ -27,35 +26,24 @@ app.add_middleware(
 )
 
 
-class Message(BaseModel):
-    role: str
-    content: str
-
-
-class ChatRequest(BaseModel):
-    messages: List[BaseMessage]
-
-
-@app.get("/chat/{chat_id}")
-async def get_chat_history(chat_id: str, memory: AsyncPostgresSaver = Depends(get_checkpointer)):
-    messages = await memory.aget({"configurable": {"thread_id": chat_id}})
+@app.get("/chat/{thread_id}")
+async def get_chat_history(thread_id: str, memory: AsyncPostgresSaver = Depends(get_checkpointer)):
+    messages = await memory.aget({"configurable": {"thread_id": thread_id}})
     return messages
 
 
-@app.post("/chat")
-async def chat_endpoint(chat_request: ChatRequest, graph=Depends(get_graph)):
-    config = {"configurable": {"thread_id": "duasdhkjasd"}}
-    lc_messages = []
-    for msg in chat_request.messages:
-        lc_messages.append(
-            (
-                msg.type,
-                msg.content
-            )
-        )
+class ChatRequest(BaseModel):
+    message: str
+
+
+@app.post("/chat/{thread_id}")
+async def chat(chat_request: ChatRequest, thread_id: str, graph=Depends(get_graph)):
+    config = {"configurable": {"thread_id": thread_id}}
     response = []
     async for s in graph.astream(
-            {"messages": lc_messages}, subgraphs=True, config=config
+        {"messages": [HumanMessage(content=chat_request.message)]},
+        subgraphs=True,
+        config=config
     ):
         response.append(s)
     return response

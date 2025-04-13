@@ -2,6 +2,7 @@ from typing import Annotated, Literal
 from typing_extensions import TypedDict
 
 from langchain_anthropic import ChatAnthropic
+from langchain_openai import ChatOpenAI
 from langgraph.graph import MessagesState, END, START, StateGraph
 from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command
@@ -52,7 +53,8 @@ class Router(TypedDict):
     next: Literal[*options]
 
 
-llm = ChatAnthropic(model="claude-3-5-sonnet-latest")
+# llm = ChatAnthropic(model="claude-3-5-sonnet-latest")
+llm = ChatOpenAI(model="gpt-4o")
 
 
 class State(MessagesState):
@@ -108,4 +110,4 @@ def create_graph(checkpointer):
     builder.add_node("supervisor", supervisor_node)
     builder.add_node("researcher", research_node)
     builder.add_node("coder", code_node)
-    return builder.compile()
+    return builder.compile(checkpointer=checkpointer)
