@@ -1,13 +1,17 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException, status, Security
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from app.dependencies import get_graph
 from app.checkpointer import get_checkpointer
-from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langchain_core.messages import HumanMessage
 import asyncio
 import sys
+import contextlib
+from app.db.engine import session_manager
+from app.core.auth import auth
+
 
 if sys.platform == 'win32':
     # Set the policy to prevent "Event loop is closed" error on Windows - https://github.com/encode/httpx/issues/914
@@ -17,7 +21,15 @@ if sys.platform == 'win32':
 load_dotenv()
 
 
-app = FastAPI()
+@contextlib.asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    if session_manager._engine is not None:
+        await session_manager.close()
+
+
+
+app = FastAPI(lifespan=lifespan, title="LangchainAPI")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -26,9 +38,16 @@ app.add_middleware(
 )
 
 
+@app.get("/api/private")
+def private(auth_result: str = Security(auth.verify)):
+    return auth_result
+
+
 @app.get("/chat/{thread_id}")
-async def get_chat_history(thread_id: str, memory: AsyncPostgresSaver = Depends(get_checkpointer)):
+async def get_chat_history(thread_id: str, memory: BaseCheckpointSaver = Depends(get_checkpointer)):
     messages = await memory.aget({"configurable": {"thread_id": thread_id}})
+    if messages is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Chat with thread_id {thread_id} not found")
     return messages
 
 

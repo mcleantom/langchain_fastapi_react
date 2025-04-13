@@ -3,9 +3,10 @@ from psycopg_pool import AsyncConnectionPool
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.checkpoint.memory import InMemorySaver
 from functools import lru_cache
+from app.core.config import settings
 
 
-DB_URI = os.environ["DB_URI"]
+DB_URI = settings.postgres_database_uri
 connection_kwargs = {
     "autocommit": True,
     "prepare_threshold": 0
