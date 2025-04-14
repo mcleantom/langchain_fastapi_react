@@ -10,3 +10,4 @@ langgraph-checkpoint-postgres
 pydantic-settings
 pyjwt
 alembic
+loguru
