@@ -6,6 +6,7 @@ import sys
 import contextlib
 from app.db.engine import session_manager
 from app.api.v1 import router
+from fastapi_pagination import add_pagination
 
 
 if sys.platform == 'win32':
@@ -32,6 +33,7 @@ app.add_middleware(
 )
 
 app.include_router(router)
+add_pagination(app)
 
 
 if __name__ == "__main__":
